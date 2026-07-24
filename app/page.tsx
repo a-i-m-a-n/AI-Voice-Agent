@@ -223,7 +223,7 @@ export default function Home() {
               checked={premiumVoice}
               onChange={(e) => setPremiumVoice(e.target.checked)}
             />
-            premium voice
+            Voice via Eleven Labs API
           </label>
         </header>
 
