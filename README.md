@@ -32,8 +32,8 @@ flowchart TD
 | Feature | Description | Notes |
 |---|---|---|
 | Push-to-talk recording | Click the mic icon to start recording, click again to stop | Uses the browser MediaRecorder API; no server connection held open while recording |
-| Speech-to-text | Converts the recorded clip to a transcript | Groq `whisper-large-v3-turbo` |
-| Conversational reply | Generates a text response from the transcript and prior turns | Groq `openai/gpt-oss-120b` |
+| Speech-to-text | Converts the recorded clip to a transcript | Groq `whisper` |
+| Conversational reply | Generates a text response from the transcript and prior turns | Groq openai/gpt |
 | Tool calling | The LLM can call server-side tools when a query requires it | One example tool (`get_current_time`) is included; add more in `app/api/chat/route.ts` |
 | On-demand speech playback | Converts a specific reply to audio only when its speaker icon is clicked | Prevents unnecessary API usage on replies the user does not listen to |
 | Voice via ElevenLabs API | Toggle to use ElevenLabs instead of the default voice | Requires a usable ElevenLabs voice on the account; falls back to an error if none exists |
@@ -46,10 +46,10 @@ flowchart TD
 |---|---|
 | Framework | Next.js 15 (App Router), React 19, TypeScript |
 | Hosting | Vercel (Hobby tier) |
-| Speech-to-text | Groq API, `whisper-large-v3-turbo` |
-| Language model | Groq API, `openai/gpt-oss-120b` |
+| Speech-to-text | Groq API, `whisper` |
+| Language model | Groq API, `openai/gpt` |
 | Text-to-speech (default) | Edge TTS, via `edge-tts-universal` |
-| Text-to-speech (optional) | ElevenLabs API, `eleven_multilingual_v2` |
+| Text-to-speech (optional) | ElevenLabs API, `eleven_multilingual` |
 
 ## Environment Variables
 
