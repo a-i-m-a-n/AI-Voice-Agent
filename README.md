@@ -1,64 +1,97 @@
 # Voice Agent
 
-A push-to-talk voice AI agent. Click the mic to record, click again to stop —
-your speech is transcribed, sent to an LLM, and the reply is shown as text.
-Click the speaker icon on a reply to have it spoken aloud.
+A push-to-talk voice AI assistant. The user records a question, the system
+transcribes it, generates a text reply through an LLM, and can speak that
+reply back on request. Built as a turn-based system (not a continuously
+open microphone) so that every request completes within Vercel's
+serverless execution limits.
 
-Turn-based by design (not a continuously open microphone), so every request
-finishes well within Vercel's free-tier 10-second function limit.
+## System Workflow
 
-## Stack
+```mermaid
+flowchart TD
+    A[User clicks mic icon] --> B[Browser records audio]
+    B --> C[User clicks mic icon again]
+    C --> D[Audio sent to /api/transcribe]
+    D --> E[Groq Whisper: speech to text]
+    E --> F[Transcript shown in chat]
+    F --> G[Transcript + history sent to /api/chat]
+    G --> H[Groq LLM generates reply]
+    H --> K[Reply text shown in chat]
+    K --> L[User clicks speaker icon]
+    L --> M[Text sent to /api/speak]
+    M --> N{Voice via ElevenLabs API enabled?}
+    N -- No --> O[Edge TTS generates audio]
+    N -- Yes --> P[ElevenLabs generates audio]
+    O --> Q[Audio played in browser]
+    P --> Q
+```
 
-- **Frontend + hosting:** Next.js 15 (App Router) on Vercel Hobby (free)
-- **Speech-to-text:** Groq `whisper-large-v3-turbo` (free tier: 2,000 requests/day)
-- **LLM:** Groq `openai/gpt-oss-120b`, with basic tool-calling wired in as an example
-  (free tier: 1,000 requests/day, 12,000 tokens/minute)
-- **Text-to-speech (default):** Microsoft Edge TTS via `edge-tts-universal` —
-  free, unlimited, no API key. This uses an undocumented public Microsoft
-  service, so treat it as unofficial and not guaranteed to stay online forever.
-- **Text-to-speech (optional premium toggle):** ElevenLabs `eleven_multilingual_v2`
-  (free tier: ~10,000 characters/month, no commercial rights on the free plan)
+## Features
 
-## Setup
+| Feature | Description | Notes |
+|---|---|---|
+| Push-to-talk recording | Click the mic icon to start recording, click again to stop | Uses the browser MediaRecorder API; no server connection held open while recording |
+| Speech-to-text | Converts the recorded clip to a transcript | Groq `whisper-large-v3-turbo` |
+| Conversational reply | Generates a text response from the transcript and prior turns | Groq `openai/gpt-oss-120b` |
+| Tool calling | The LLM can call server-side tools when a query requires it | One example tool (`get_current_time`) is included; add more in `app/api/chat/route.ts` |
+| On-demand speech playback | Converts a specific reply to audio only when its speaker icon is clicked | Prevents unnecessary API usage on replies the user does not listen to |
+| Voice via ElevenLabs API | Toggle to use ElevenLabs instead of the default voice | Requires a usable ElevenLabs voice on the account; falls back to an error if none exists |
+| Default voice | Free, unlimited text-to-speech used when the ElevenLabs toggle is off | Microsoft Edge TTS, via an unofficial public endpoint |
+| Live input meter | Bar visualization reflecting microphone input while recording | Uses the Web Audio AnalyserNode; visual feedback only |
 
-1. Install dependencies:
-   ```bash
-   npm install
-   ```
-2. Copy the environment file and add your key:
-   ```bash
-   cp .env.example .env.local
-   ```
-   - `GROQ_API_KEY` — required. Get a free key at https://console.groq.com/keys
-   - `ELEVENLABS_API_KEY` — optional. Only needed if you turn on "premium voice"
-     in the UI. Get a free key at https://elevenlabs.io/
-3. Run locally:
-   ```bash
-   npm run dev
-   ```
-   Open http://localhost:3000 and allow microphone access.
+## Tech Stack
 
-## Deploying to Vercel (free tier)
+| Layer | Technology |
+|---|---|
+| Framework | Next.js 15 (App Router), React 19, TypeScript |
+| Hosting | Vercel (Hobby tier) |
+| Speech-to-text | Groq API, `whisper-large-v3-turbo` |
+| Language model | Groq API, `openai/gpt-oss-120b` |
+| Text-to-speech (default) | Edge TTS, via `edge-tts-universal` |
+| Text-to-speech (optional) | ElevenLabs API, `eleven_multilingual_v2` |
 
-1. Push this project to a GitHub repo.
-2. Go to https://vercel.com/new and import the repo.
-3. In the project's Environment Variables settings, add `GROQ_API_KEY`
-   (and `ELEVENLABS_API_KEY` if you want the premium voice option).
-4. Deploy. No other configuration is needed — the API routes already run on
-   the Node.js serverless runtime with `maxDuration: 30`, which fits Vercel
-   Hobby's limits.
+## Environment Variables
 
-## Notes and limits
+| Variable | Required | Purpose |
+|---|---|---|
+| `GROQ_API_KEY` | Yes | Authenticates speech-to-text and chat requests |
+| `ELEVENLABS_API_KEY` | Only if the ElevenLabs voice toggle is used | Authenticates text-to-speech requests to ElevenLabs |
+| `ELEVENLABS_VOICE_ID` | Optional | Pins a specific ElevenLabs voice; if unset, the first voice found on the account is used |
 
-- Microphone access requires HTTPS (or localhost), which Vercel provides by
-  default — no extra setup needed.
-- Groq's free tier is rate-limited (requests/day and tokens/minute). If you
-  hit a limit, either wait for the daily reset or add a card to move to
-  Groq's Developer tier, which is still free and raises the limits.
-- The default voice (Edge TTS) has no character cap. Reserve the ElevenLabs
-  premium toggle for demos, since its free plan is capped at roughly
-  10,000 characters per month.
-- This is a turn-based agent (record → transcribe → reply → optionally
-  speak), not a continuously streaming/interruptible voice call. A
-  continuous, always-listening experience needs a persistent server
-  connection, which isn't compatible with Vercel's serverless free tier.
+## Local Setup
+
+```bash
+npm install
+cp .env.example .env.local
+# add GROQ_API_KEY (and optionally ELEVENLABS_API_KEY / ELEVENLABS_VOICE_ID) to .env.local
+npm run dev
+```
+
+Open `http://localhost:3000` and allow microphone access when prompted.
+
+## Deployment (Vercel, free tier)
+
+1. Push the project to a GitHub repository.
+2. Import the repository at vercel.com/new.
+3. Add `GROQ_API_KEY` (and `ELEVENLABS_API_KEY` / `ELEVENLABS_VOICE_ID` if used)
+   under Project Settings > Environment Variables.
+4. Deploy. No additional configuration is required.
+
+## Known Limitations
+
+| Limitation | Detail |
+|---|---|
+| Not continuously listening | Each turn is record-then-stop, not an always-open microphone; a persistent, interruptible voice call would require a non-serverless backend |
+| Groq rate limits | Free tier is capped at a fixed number of requests per day and tokens per minute |
+| ElevenLabs free tier | Roughly 10,000 characters per month; cannot use Voice Library voices via the API, only a voice created on the account |
+
+## Future Improvements
+
+| Improvement | Description |
+|---|---|
+| Download chat | Export the full transcript, along with any generated reply audio, as a single downloadable file |
+| Streaming responses | Stream the LLM reply as it generates instead of waiting for the full response |
+| Conversation persistence | Save conversations across sessions instead of resetting on page reload |
+| Additional tools | Expand the tool-calling set beyond the current example tool |
+| Continuous listening mode | A persistent, interruptible voice session, requiring a non-serverless backend |
