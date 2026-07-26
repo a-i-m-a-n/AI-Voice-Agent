@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { SYSTEM_PROMPT } from "@/app/lib/systemPrompt.compact";
 
 export const runtime = "nodejs";
 export const maxDuration = 30;
@@ -7,11 +8,6 @@ const GROQ_CHAT_URL = "https://api.groq.com/openai/v1/chat/completions";
 // gpt-oss-120b is Groq's current recommended general-purpose model
 // (llama-3.3-70b-versatile was deprecated in June 2026 in favor of this model).
 const CHAT_MODEL = "openai/gpt-oss-120b";
-
-const SYSTEM_PROMPT =
-  "You are a helpful voice assistant. The user is speaking to you, and your reply will be read " +
-  "aloud, so keep answers concise, conversational, and free of markdown formatting, bullet points, " +
-  "or code blocks unless the user explicitly asks for code.";
 
 // A minimal example tool so the agent can call out to the real world when needed.
 // Add more tools here following the same pattern.
